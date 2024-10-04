@@ -12,16 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Check java found
-        id: check_java
-        shell: bash
-        run: |
-          if java --version; then
-              echo "installed=true" >> "$GITHUB_OUTPUT"
-          else
-              echo "installed=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Install java
         if: steps.check_java.outputs.installed == 'false'
         uses: actions/setup-java@v3
