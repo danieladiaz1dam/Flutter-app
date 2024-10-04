@@ -1,3 +1,7 @@
+**/upload-keystore.jks
+**/key.properties
+b64.exe
+
 # Miscellaneous
 *.class
 *.log
