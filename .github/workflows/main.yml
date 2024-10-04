@@ -12,13 +12,62 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: cedvdb/action-flutter-build-android@v1
+      - name: Check java found
+        id: check_java
+        shell: bash
+        run: |
+          if java --version; then
+              echo "installed=true" >> "$GITHUB_OUTPUT"
+          else
+              echo "installed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install java
+        if: steps.check_java.outputs.installed == 'false'
+        uses: actions/setup-java@v3
         with:
-          keystore-base64: ${{ secrets.ANDROID_RELEASE_KEY }}
-          keystore-password: "${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}"
-          # optionals
-          build-cmd: flutter build apk --release
-          working-directory: ./
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Check flutter found
+        id: check_flutter
+        shell: bash
+        run: |
+          if flutter --version; then
+              echo "installed=false" >> "$GITHUB_OUTPUT"
+          else
+              echo "installed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup flutter
+        if: steps.check_flutter.outputs.installed == 'false'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - run: flutter --version
+        shell: bash
+
+      - name: Decode keystore and create jks and properties file for signing the app
+        shell: bash
+        run: |
+          echo "$KEYSTORE" | base64 --decode > app/keystore.jks
+          echo "storeFile=keystore.jks" >> key.properties
+          echo "keyAlias=upload" >> key.properties
+          echo "storePassword=$KEYSTORE_PASSWORD" >> key.properties
+          echo "keyPassword=$KEYSTORE_PASSWORD" >> key.properties
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_RELEASE_KEY }}
+          KEYSTORE_PASSWORD: "${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}"
+        working-directory: ./android
+
+      - name: Build
+        run: ${{ inputs.build-cmd }}
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+
 
       - name: Archive APK
         uses: actions/upload-artifact@v4
